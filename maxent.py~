@@ -8,7 +8,7 @@
 class Maxent:
 
 	def __init__(self):
-		"model expectation and observed expectation of f_i"
+		# model expectation and observed expectation of f_i
 		self.observed = []
 		self.expected = []
 		pass
