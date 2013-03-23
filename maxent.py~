@@ -1,4 +1,5 @@
 import math
+import random
 # psudo code
 #@1 Find out how many features are needed,say k features, and what they are
 #@2 Initialize k features to 0
@@ -27,7 +28,9 @@ class Maxent:
 		# function has its own lambda param.
 		self.Lambdas = dict()
 		for i in self.classes:
-			self.Lambdas[i] = [0 for j in range(self.amountOfFeatrues)] 
+			#self.Lambdas[i] = [0 for j in range(self.amountOfFeatrues)] 
+			self.Lambdas[i] = [1.0/random.randint(1,100) for j in range(self.amountOfFeatrues)] 
+
 		pass
 
 	def Reset(self):
@@ -59,6 +62,9 @@ class Maxent:
 		for i in s[1:]:
 			flist[self.features.index(i)] = 1
 		result[c] = flist
+		for i in self.classes:
+			if i != c:
+				result[i] = [0 for j in range(self.amountOfFeatrues)]
 		return result
 
 	def TrainModel(self):
@@ -74,53 +80,65 @@ class Maxent:
 		fplist = []
 		for i in self.classes:
 			fplist.append(max(self.observed[i]))
-		fpound = max(fplist)
+		#fpound = max(fplist)
+		fpound = 16 
 
 		for i in self.classes:
 			for k in range(self.amountOfFeatrues):
-				self.observed[i][k] = self.observed[i][k]/fpound
+				self.observed[i][k] = float(self.observed[i][k])/len(trainSet)
 		#for k in range(len(self.observed)):
 			#self.observed[k] = float(self.observed[k])/len(trainSet)
-		print self.observed
+		#print self.observed
 
-		logFile = open("log.txt",'w')
-		for it in range(50):
+		logFile = open("log2.txt",'w')
+		for it in range(100):
 			# i is the ith training instance
 			for i in range(len(trainSet)):
 				features = self.tmpFeatureFunctions(trainSet[i])
 				# y is class label
-				for y in features:
-					middleResult =  [[0 for m in range(len(self.classes))] \
+				for y1 in self.classes:
+					s =  [[0 for m in range(len(self.classes))] \
 											for n in range(len(trainSet))]
-					# features is a dict, key is the label of class,
-					# value is a list of feature values{0,1} under that class
-					for k in range(self.amountOfFeatrues):
-						middleResult[i][y] += self.Lambdas[y][k] * features[y][k]
+					for y2 in self.classes:
+						# features is a dict, key is the label of class,
+						# value is a list of feature values{0,1} under that class
+						for k in range(self.amountOfFeatrues):
+							s[i][y2] += self.Lambdas[y2][k] * features[y2][k]
 	
-				z = sum([math.exp(middleResult[i][y]) for y in self.classes])
-				print z
-				for y in features:
+				z = sum([math.exp(s[i][y]) for y in self.classes])
+				#print z
+				for y in self.classes:
 					for k in range(self.amountOfFeatrues):
 						self.expected[y][k] += \
-								features[y][k] * math.exp(middleResult[i][y]) / z
+								features[y][k] * math.exp(s[i][y]) / z
+			#print self.expected
 	
 			for y in self.classes:
 				for k in range(self.amountOfFeatrues):
 					#print "fpound:",fpound
 					#print "ob:",self.observed[k],"exp:",self.expected[k],"k",k
 					#print "ob:",math.log(self.observed[k]),"exp:",math.log(self.expected[k]),"k",k
-					#print "minus log:",(math.log(self.observed[k]) - math.log(self.expected[k]))
 					if self.observed[y][k] == 0:
 						continue
-					delta = (1.0/fpound) * \
-							(math.log(self.observed[y][k]) -\
-							 math.log(self.expected[y][k]))
+					#print "minus log:",(math.log(self.observed[y][k]) -\
+							#math.log(self.expected[y][k]))
+					delta =	(math.log(self.observed[y][k]) -\
+							 math.log(self.expected[y][k]))/fpound
+					#if self.Lambdas[y][k] + delta < 0:
+						#continue
 					#print delta
 					self.Lambdas[y][k] += delta
-			logFile.write("========="+str(it)+"==========\n")
-			for j in range(self.amountOfFeatrues):
-				for i in self.classes:
-					logFile.write(str(i)+","+self.features[j]+"\t"+str(self.Lambdas[i][j])+"\n")
+
+			diffList = []
+			for i in self.classes:
+				for j in range(self.amountOfFeatrues):
+					diffList.append(self.observed[i][j]-self.expected[i][j])
+			print sum(diffList)/len(diffList)
+
+		#logFile.write("========="+str(it)+"==========\n")
+		for j in range(self.amountOfFeatrues):
+			for i in self.classes:
+				logFile.write(str(i)+","+self.features[j]+"\t"+str(self.Lambdas[i][j])+"\n")
 		logFile.close()
 
 			
